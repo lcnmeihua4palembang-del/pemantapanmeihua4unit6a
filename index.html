@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="google" content="notranslate">
+    <title>Pembelajaran Interaktif Meihua - Kelas 4</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f0fdfa;
+            overflow: hidden; 
+        }
+        
+        .font-zh {
+            font-family: 'KaiTi', 'STKaiti', 'BiauKai', '楷体', serif;
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
+            20%, 40%, 60%, 80% { transform: translateX(10px); }
+        }
+        .animate-shake {
+            animation: shake 0.5s;
+        }
+
+        ::-webkit-scrollbar { width: 12px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #fbbf24; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #f59e0b; }
+
+        .text-shadow { text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+    </style>
+</head>
+<body oncopy="return false" oncut="return false" onpaste="return false" oncontextmenu="return false">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+        synth.volume.value = -5;
+
+        const playSound = (type) => {
+            if (Tone.context.state !== 'running') Tone.start();
+            const now = Tone.now();
+            if (type === 'correct') {
+                synth.triggerAttackRelease(["C5", "E5", "G5", "C6"], "8n", now);
+            } else if (type === 'wrong') {
+                synth.triggerAttackRelease(["C4", "F#3"], "4n", now);
+            }
+        };
+
+        const allVocabOptions = ["旅游", "最", "可以", "慢", "快", "汽车", "远", "累", "火车", "飞机", "应该", "同意", "走", "到", "巴厘岛", "转渡轮"];
+        const allFillinOptions = ["可以", "应该", "最", "快", "慢", "累", "远", "坐", "骑", "同意"];
+        const allPinyinFillOptions = ["巴厘岛", "快", "累", "转", "同意", "可以", "应该", "上班", "骑", "坐"];
+
+        const rawLessonData = {
+            menu: [
+                { id: 'vocab', title: '1. Kosa Kata', icon: '📝', color: 'bg-rose-400' },
+                { id: 'fillin', title: '2. Lengkapi Kalimat', icon: '🧩', color: 'bg-blue-400' },
+                { id: 'reading1', title: '3. Cerita 1', icon: '📖', color: 'bg-green-400' },
+                { id: 'reading2', title: '4. Cerita 2', icon: '📚', color: 'bg-purple-400' },
+                { id: 'pinyinfill', title: '5. Sesuai Pinyin', icon: '✍️', color: 'bg-orange-400' }
+            ],
+            sections: {
+                vocab: [
+                    { q: "lǚ yóu", ans: 0, expl: { hz: "旅游", py: "lǚ yóu", id: "Pariwisata / Jalan-jalan" } },
+                    { q: "zuì", ans: 1, expl: { hz: "最", py: "zuì", id: "Paling" } },
+                    { q: "kě yǐ", ans: 2, expl: { hz: "可以", py: "kě yǐ", id: "Bisa / Boleh" } },
+                    { q: "màn", ans: 3, expl: { hz: "慢", py: "màn", id: "Lambat" } },
+                    { q: "kuài", ans: 4, expl: { hz: "快", py: "kuài", id: "Cepat" } },
+                    { q: "qì chē", ans: 5, expl: { hz: "汽车", py: "qì chē", id: "Mobil" } },
+                    { q: "yuǎn", ans: 6, expl: { hz: "远", py: "yuǎn", id: "Jauh" } },
+                    { q: "lèi", ans: 7, expl: { hz: "累", py: "lèi", id: "Lelah / Capek" } },
+                    { q: "huǒ chē", ans: 8, expl: { hz: "火车", py: "huǒ chē", id: "Kereta Api" } },
+                    { q: "fēi jī", ans: 9, expl: { hz: "飞机", py: "fēi jī", id: "Pesawat Terbang" } },
+                    { q: "yīng gāi", ans: 10, expl: { hz: "应该", py: "yīng gāi", id: "Seharusnya" } },
+                    { q: "tóng yì", ans: 11, expl: { hz: "同意", py: "tóng yì", id: "Setuju" } },
+                    { q: "zǒu", ans: 12, expl: { hz: "走", py: "zǒu", id: "Berjalan / Pergi" } },
+                    { q: "dào", ans: 13, expl: { hz: "到", py: "dào", id: "Sampai / Tiba" } },
+                    { q: "Bālí dǎo", ans: 14, expl: { hz: "巴厘岛", py: "Bālí dǎo", id: "Pulau Bali" } },
+                    { q: "zhuǎn dù lún", ans: 15, expl: { hz: "转渡轮", py: "zhuǎn dù lún", id: "Ganti Kapal Feri" } }
+                ],
+                fillin: [
+                    { q: "巴厘岛怎么去 ( ___ ) 好呢？", ans: 2, expl: { hz: "最", py: "zuì", id: "Paling" } },
+                    { q: "弟弟说：“我们 ( ___ ) 骑自行车去！”", ans: 0, expl: { hz: "可以", py: "kě yǐ", id: "Bisa" } },
+                    { q: "爸爸说：“骑自行车太 ( ___ ) 了。”", ans: 4, expl: { hz: "慢", py: "màn", id: "Lambat" } },
+                    { q: "坐飞机很 ( ___ )，我们坐飞机去吧。", ans: 3, expl: { hz: "快", py: "kuài", id: "Cepat" } },
+                    { q: "巴厘岛很 ( ___ )，坐汽车一定很累。", ans: 6, expl: { hz: "远", py: "yuǎn", id: "Jauh" } },
+                    { q: "大家都 ( ___ ) 吗？我们坐飞机去吧。", ans: 9, expl: { hz: "同意", py: "tóng yì", id: "Setuju" } },
+                    { q: "妈妈说：“火车没有开到巴厘岛的，我们 ( ___ ) 转渡轮。”", ans: 1, expl: { hz: "应该", py: "yīng gāi", id: "Seharusnya" } },
+                    { q: "我 ( ___ ) 喜欢吃苹果。", ans: 2, expl: { hz: "最", py: "zuì", id: "Paling" } },
+                    { q: "爸爸每天 ( ___ ) 火车去上班。", ans: 7, expl: { hz: "坐", py: "zuò", id: "Duduk / Naik" } },
+                    { q: "姐姐想 ( ___ ) 自行车去学校。", ans: 8, expl: { hz: "骑", py: "qí", id: "Mengendarai" } }
+                ],
+                reading1: {
+                    text: "我们一家人要去巴厘岛旅游。巴厘岛怎么去最好呢？弟弟说：“我们可以骑自行车去！”爸爸说：“骑自行车太慢了。怎么去比较快？”哥哥说：“我们可以坐汽车去！”爸爸说：“巴厘岛很远，坐汽车一定很累。”姐姐说：“我们可以坐火车去！”妈妈说：“火车没有开到巴厘岛的，我们应该转渡轮。”妹妹说：“我们可以坐飞机去！”爸爸说：“坐飞机很快。大家都同意吗？”大家说：“同意！”",
+                    questions: [
+                        { q: "他们一家人要去哪里旅游？", options: ["北京", "巴厘岛", "上海"], ans: 1, expl: { hz: "巴厘岛", py: "Bālí dǎo", id: "Pulau Bali" } },
+                        { q: "弟弟想怎么去巴厘岛？", options: ["坐飞机", "坐火车", "骑自行车"], ans: 2, expl: { hz: "骑自行车", py: "qí zìxíngchē", id: "Naik / Mengendarai sepeda" } },
+                        { q: "为什么爸爸说不能坐汽车去？", options: ["因为很远，很累", "因为没有汽车", "因为比较快"], ans: 0, expl: { hz: "因为巴厘岛很远，坐汽车一定很累", py: "yīnwèi bālí dǎo hěn yuǎn, zuò qìchē yīdìng hěn lèi", id: "Karena sangat jauh, naik mobil pasti sangat lelah" } },
+                        { q: "火车能直接开到巴厘岛吗？应该怎么去？", options: ["不能，应该转渡轮", "能，可以直接开", "不能，应该走路去"], ans: 0, expl: { hz: "不能，应该转渡轮", py: "bù néng, yīng gāi zhuǎn dù lún", id: "Tidak bisa, seharusnya ganti kapal feri" } },
+                        { q: "最后他们决定坐什么去巴厘岛？", options: ["坐飞机", "坐汽车", "转渡轮"], ans: 0, expl: { hz: "坐飞机", py: "zuò fēijī", id: "Naik pesawat terbang" } }
+                    ]
+                },
+                reading2: {
+                    text: "我叫小芳，我今年九岁了。我很喜欢去学校。每天早上妈妈开汽车送我去学校。这是我姐姐。她叫小月。她今年十三岁了。她说她想骑自行车去学校。昨天妈妈给她买了一辆粉红色的自行车，姐姐很喜欢。这是我爸爸。他每天坐火车去上班。他说坐火车比坐汽车快，因为不堵车。这是我爷爷和奶奶。明天他们要来我们家。因为住得很远，所以应该坐飞机来的。",
+                    questions: [
+                        { q: "小芳今年几岁了？", options: ["九岁", "十岁", "八岁"], ans: 0, expl: { hz: "九岁", py: "jiǔ suì", id: "Sembilan tahun" } },
+                        { q: "每天早上谁送小芳去学校？", options: ["爸爸", "妈妈", "姐姐"], ans: 1, expl: { hz: "妈妈", py: "māma", id: "Ibu" } },
+                        { q: "小月想怎么去学校？", options: ["骑自行车", "坐火车", "开汽车"], ans: 0, expl: { hz: "骑自行车", py: "qí zìxíngchē", id: "Naik sepeda" } },
+                        { q: "爸爸每天怎么去上班？", options: ["坐汽车", "坐飞机", "坐火车"], ans: 2, expl: { hz: "坐火车", py: "zuò huǒchē", id: "Naik kereta api" } },
+                        { q: "爷爷和奶奶明天怎么来小芳家？", options: ["坐飞机", "坐汽车", "走路"], ans: 0, expl: { hz: "坐飞机", py: "zuò fēijī", id: "Naik Pesawat" } }
+                    ]
+                },
+                pinyinfill: [
+                    { q: "我们一家人要去 Bālí dǎo ( ___ ) 旅游。", ans: 0, expl: { hz: "巴厘岛", py: "Bālí dǎo", id: "Pulau Bali" } },
+                    { q: "怎么去比较 kuài ( ___ )？", ans: 1, expl: { hz: "快", py: "kuài", id: "Cepat" } },
+                    { q: "坐汽车一定很 lèi ( ___ )。", ans: 2, expl: { hz: "累", py: "lèi", id: "Lelah" } },
+                    { q: "我们应该 zhuǎn ( ___ ) 渡轮。", ans: 3, expl: { hz: "转", py: "zhuǎn", id: "Tukar / Ganti (kendaraan)" } },
+                    { q: "坐飞机很 kuài ( ___ )。", ans: 1, expl: { hz: "快", py: "kuài", id: "Cepat" } },
+                    { q: "大家都 tóngyì ( ___ ) 吗？", ans: 4, expl: { hz: "同意", py: "tóngyì", id: "Setuju" } },
+                    { q: "爸爸，我现在 kěyǐ ( ___ ) 打游戏吗？", ans: 5, expl: { hz: "可以", py: "kěyǐ", id: "Boleh / Bisa" } },
+                    { q: "你应该 yīnggāi ( ___ ) 坐飞机去。", ans: 6, expl: { hz: "应该", py: "yīnggāi", id: "Seharusnya" } },
+                    { q: "爸爸每天坐火车去 shàngbān ( ___ )。", ans: 7, expl: { hz: "上班", py: "shàngbān", id: "Pergi bekerja" } },
+                    { q: "姐姐想 qí ( ___ ) 自行车去学校。", ans: 8, expl: { hz: "骑", py: "qí", id: "Mengendarai (sepeda/motor)" } }
+                ]
+            }
+        };
+
+        const FeedbackModal = ({ type, explanation, onNext }) => {
+            const isCorrect = type === 'correct';
+            const bgColor = isCorrect ? 'bg-green-100 border-green-500' : 'bg-red-100 border-red-500';
+            const textColor = isCorrect ? 'text-green-600' : 'text-red-600';
+            const icon = isCorrect ? '🌟 BENAR! 🌟' : '❌ KURANG TEPAT ❌';
+
+            return (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 animate-pop rounded-3xl p-4">
+                    <div className={`${bgColor} border-4 p-4 md:p-8 rounded-3xl shadow-2xl max-w-2xl w-full text-center transform transition-all`}>
+                        <h2 className={`text-4xl md:text-6xl font-black mb-4 md:mb-6 text-shadow ${textColor}`}>{icon}</h2>
+                        
+                        <div className="bg-white p-4 md:p-6 rounded-2xl shadow-inner mb-6">
+                            <h3 className="text-xl md:text-3xl font-bold text-gray-700 mb-2 md:mb-4">Pembahasan:</h3>
+                            <div className="text-6xl md:text-8xl font-zh text-blue-600 mb-2 md:mb-4">{explanation.hz}</div>
+                            <div className="text-3xl md:text-5xl font-bold text-orange-500 mb-2">{explanation.py}</div>
+                            <div className="text-2xl md:text-4xl font-semibold text-gray-700">{explanation.id}</div>
+                        </div>
+
+                        <button 
+                            onClick={onNext}
+                            className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 text-2xl md:text-4xl font-black py-3 px-8 md:py-4 md:px-12 rounded-full shadow-lg transform transition hover:scale-105 active:scale-95"
+                        >
+                            Lanjut ➔
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [lessonData, setLessonData] = useState(null);
+            const [activeSection, setActiveSection] = useState('vocab');
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [feedback, setFeedback] = useState(null);
+            const [shake, setShake] = useState(false);
+            const [draggedText, setDraggedText] = useState(null);
+
+            useEffect(() => {
+                const initAudio = () => {
+                    Tone.start();
+                    document.removeEventListener('click', initAudio);
+                    document.removeEventListener('touchstart', initAudio);
+                };
+                document.addEventListener('click', initAudio);
+                document.addEventListener('touchstart', initAudio);
+
+                // Shuffling Logic
+                const shuffleArray = (arr) => [...arr].sort(() => Math.random() - 0.5);
+                const newLesson = JSON.parse(JSON.stringify(rawLessonData));
+
+                const sVocab = shuffleArray(allVocabOptions);
+                const sFillin = shuffleArray(allFillinOptions);
+                const sPinyin = shuffleArray(allPinyinFillOptions);
+
+                newLesson.sections.vocab.forEach(q => {
+                    q.ansText = allVocabOptions[q.ans];
+                    q.options = sVocab;
+                });
+                newLesson.sections.fillin.forEach(q => {
+                    q.ansText = allFillinOptions[q.ans];
+                    q.options = sFillin;
+                });
+                newLesson.sections.pinyinfill.forEach(q => {
+                    q.ansText = allPinyinFillOptions[q.ans];
+                    q.options = sPinyin;
+                });
+
+                newLesson.sections.reading1.questions.forEach(q => {
+                    q.ansText = q.options[q.ans];
+                    q.options = shuffleArray(q.options);
+                });
+                newLesson.sections.reading2.questions.forEach(q => {
+                    q.ansText = q.options[q.ans];
+                    q.options = shuffleArray(q.options);
+                });
+
+                setLessonData(newLesson);
+
+                return () => {
+                    document.removeEventListener('click', initAudio);
+                    document.removeEventListener('touchstart', initAudio);
+                };
+            }, []);
+
+            if (!lessonData) return <div className="flex h-screen items-center justify-center text-4xl font-bold text-gray-500">Memuat Soal...</div>;
+
+            const handleMenuClick = (id) => {
+                setActiveSection(id);
+                setCurrentIndex(0);
+                setFeedback(null);
+                setDraggedText(null);
+            };
+
+            const handleAnswer = (selectedText, correctText, explanation) => {
+                if (selectedText === correctText) {
+                    playSound('correct');
+                    setFeedback({ type: 'correct', expl: explanation });
+                } else {
+                    playSound('wrong');
+                    setShake(true);
+                    setTimeout(() => setShake(false), 500);
+                    setFeedback({ type: 'wrong', expl: explanation });
+                }
+            };
+
+            const handleDrop = (e, correctText, explanation) => {
+                e.preventDefault();
+                if (draggedText !== null) {
+                    handleAnswer(draggedText, correctText, explanation);
+                    setDraggedText(null);
+                }
+            };
+            
+            const handleDropClick = (correctText, explanation) => {
+                if (draggedText !== null) {
+                    handleAnswer(draggedText, correctText, explanation);
+                    setDraggedText(null);
+                }
+            };
+
+            const nextQuestion = () => {
+                setFeedback(null);
+                const currentData = activeSection.startsWith('reading') 
+                    ? lessonData.sections[activeSection].questions 
+                    : lessonData.sections[activeSection];
+                
+                if (currentIndex < currentData.length - 1) {
+                    setCurrentIndex(currentIndex + 1);
+                } else {
+                    setCurrentIndex(0);
+                }
+            };
+            
+            const renderMenu = () => (
+                <div className="w-full md:w-[18%] md:min-w-[220px] bg-white shadow-2xl md:rounded-r-3xl flex flex-row md:flex-col p-2 md:p-4 z-10 md:h-full border-b md:border-b-0 md:border-r border-gray-200 overflow-x-auto items-center md:items-stretch">
+                    <div className="text-center mb-0 md:mb-6 mr-4 md:mr-0 shrink-0">
+                        <h1 className="text-xl md:text-3xl font-black text-rose-500 text-shadow">MEIHUA 4</h1>
+                        <h2 className="text-sm md:text-xl font-bold text-gray-600">Unit 6A</h2>
+                    </div>
+                    <div className="flex-grow flex flex-row md:flex-col gap-2 md:gap-3 shrink-0">
+                        {lessonData.menu.map(item => (
+                            <button 
+                                key={item.id}
+                                onClick={() => handleMenuClick(item.id)}
+                                className={`text-left p-2 md:p-4 rounded-xl shadow-sm transition-all duration-300 transform hover:scale-105 flex items-center gap-2 md:gap-3 text-sm md:text-xl lg:text-2xl font-bold border-b-4 ${activeSection === item.id ? item.color + ' text-white border-white' : 'bg-gray-100 text-gray-700 border-gray-300'}`}
+                            >
+                                <span className="text-xl md:text-3xl">{item.icon}</span>
+                                <span className="whitespace-nowrap">{item.title}</span>
+                            </button>
+                        ))}
+                    </div>
+                    <img src="https://placehold.co/150x150/ffebb5/ff9900?text=加油!" alt="Mascot" className="hidden md:block mx-auto rounded-full w-28 h-28 object-cover shadow-lg border-4 border-yellow-400 mt-auto mb-2"/>
+                </div>
+            );
+
+            const renderQuestionArea = () => {
+                const sectionType = activeSection;
+                const dataList = sectionType.startsWith('reading') 
+                    ? lessonData.sections[sectionType].questions 
+                    : lessonData.sections[sectionType];
+                const currentQ = dataList[currentIndex];
+
+                return (
+                    <div className="flex-grow p-4 md:p-10 relative flex flex-col h-full w-full md:w-[82%]">
+                        <div className="bg-white rounded-3xl shadow-xl p-4 md:p-8 mb-4 md:mb-6 text-center border-b-8 border-yellow-400 relative">
+                            <div className="absolute top-2 right-4 md:top-4 md:right-6 bg-blue-500 text-white rounded-full px-3 py-1 md:px-5 md:py-2 text-sm md:text-xl font-bold shadow">
+                                Soal {currentIndex + 1} / {dataList.length}
+                            </div>
+
+                            {sectionType === 'vocab' && (
+                                <div className="mt-6 md:mt-0">
+                                    <h3 className="text-xl md:text-3xl text-gray-500 font-bold mb-4">Pilih Hanzi yang tepat untuk Pinyin ini:</h3>
+                                    <div className="text-5xl md:text-8xl font-black text-blue-600 tracking-wider py-4 bg-blue-50 rounded-2xl inline-block px-6 md:px-12">
+                                        {currentQ.q}
+                                    </div>
+                                </div>
+                            )}
+
+                            {sectionType === 'fillin' && (
+                                <div className="mt-6 md:mt-0">
+                                    <h3 className="text-xl md:text-3xl text-gray-500 font-bold mb-4">Tarik kata atau Sentuh kotak untuk mengisi:</h3>
+                                    <div className="text-3xl md:text-5xl font-zh text-gray-800 leading-relaxed bg-yellow-50 p-4 md:p-6 rounded-2xl border-2 border-yellow-200 flex items-center justify-center flex-wrap gap-2 md:gap-4">
+                                        {currentQ.q.split('___').map((part, i, arr) => (
+                                            <React.Fragment key={i}>
+                                                <span>{part}</span>
+                                                {i < arr.length - 1 && (
+                                                    <div 
+                                                        onClick={() => handleDropClick(currentQ.ansText, currentQ.expl)}
+                                                        onDragOver={(e) => e.preventDefault()}
+                                                        onDrop={(e) => handleDrop(e, currentQ.ansText, currentQ.expl)}
+                                                        className={`inline-block w-32 md:w-40 h-12 md:h-16 border-4 border-dashed rounded-xl align-middle flex items-center justify-center transition-colors cursor-pointer ${draggedText !== null ? 'border-blue-500 bg-blue-100 animate-pulse' : 'border-gray-400 bg-white'}`}
+                                                    >
+                                                        <span className="text-sm md:text-lg text-gray-400 font-sans font-bold text-center leading-tight">{draggedText !== null ? 'Tap/Drop Sini' : 'Tarik Kesini'}</span>
+                                                    </div>
+                                                )}
+                                            </React.Fragment>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {sectionType.startsWith('reading') && (
+                                <div className="text-left flex flex-col h-full mt-6 md:mt-0">
+                                    <div className="bg-green-50 p-4 md:p-6 rounded-2xl border-2 border-green-200 mb-4 md:mb-6 flex-grow overflow-y-auto max-h-40 md:max-h-56">
+                                        <p className="text-2xl md:text-4xl font-zh text-gray-800 leading-relaxed indent-10">
+                                            {lessonData.sections[sectionType].text}
+                                        </p>
+                                    </div>
+                                    <div className="text-2xl md:text-4xl font-zh text-blue-700 font-bold bg-blue-50 p-3 md:p-4 rounded-xl border border-blue-200">
+                                        Pertanyaan: {currentQ.q}
+                                    </div>
+                                </div>
+                            )}
+
+                            {sectionType === 'pinyinfill' && (
+                                <div className="mt-6 md:mt-0">
+                                    <h3 className="text-xl md:text-3xl text-gray-500 font-bold mb-4">Pilih Hanzi yang tepat sesuai Pinyin:</h3>
+                                    <div className="text-3xl md:text-6xl font-zh text-gray-800 leading-relaxed bg-orange-50 py-4 px-4 md:py-8 md:px-6 rounded-2xl border-2 border-orange-200">
+                                        {currentQ.q}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {sectionType === 'fillin' ? (
+                            <div className={`flex justify-center gap-2 md:gap-4 mt-auto mb-2 flex-wrap overflow-y-auto max-h-[30vh] md:max-h-full ${shake ? 'animate-shake' : ''}`}>
+                                {currentQ.options.map((opt, idx) => (
+                                    <div
+                                        key={idx}
+                                        draggable
+                                        onClick={() => setDraggedText(opt)}
+                                        onDragStart={() => setDraggedText(opt)}
+                                        onDragEnd={() => setDraggedText(null)}
+                                        className={`cursor-grab active:cursor-grabbing bg-white hover:bg-yellow-100 text-blue-600 font-zh text-3xl md:text-4xl font-bold py-2 px-4 md:py-3 md:px-6 rounded-2xl shadow-md border-b-4 transform transition-all flex items-center justify-center select-none m-1 ${draggedText === opt ? 'border-blue-500 ring-4 ring-blue-300 scale-110' : 'border-gray-300 hover:border-yellow-400 hover:scale-105'}`}
+                                    >
+                                        {opt}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className={currentQ.options.length > 5 ? `flex justify-center flex-wrap gap-2 md:gap-3 mt-auto mb-2 overflow-y-auto max-h-[40vh] p-2 ${shake ? 'animate-shake' : ''}` : `grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 mt-auto mb-2 md:mb-6 ${shake ? 'animate-shake' : ''}`}>
+                                {currentQ.options.map((opt, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => handleAnswer(opt, currentQ.ansText, currentQ.expl)}
+                                        className={currentQ.options.length > 5 ? "bg-white hover:bg-yellow-100 text-gray-800 font-zh text-2xl md:text-4xl font-bold py-2 px-4 md:py-3 md:px-5 rounded-xl md:rounded-2xl shadow-md border-b-4 border-gray-300 hover:border-yellow-400 hover:text-yellow-600 transform transition-all active:translate-y-1 active:border-b-0 flex items-center justify-center m-1" : "bg-white hover:bg-yellow-100 text-gray-800 font-zh text-3xl md:text-5xl font-bold py-4 px-3 md:py-6 md:px-4 rounded-2xl md:rounded-3xl shadow-lg border-b-4 md:border-b-8 border-gray-300 hover:border-yellow-400 hover:text-yellow-600 transform transition-all active:translate-y-2 active:border-b-0 flex items-center justify-center min-h-[80px] md:min-h-[120px]"}
+                                    >
+                                        {opt}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {feedback && (
+                            <FeedbackModal 
+                                type={feedback.type} 
+                                explanation={feedback.expl} 
+                                onNext={nextQuestion} 
+                            />
+                        )}
+                    </div>
+                );
+            };
+
+            return (
+                <div className="h-screen w-screen flex flex-col overflow-hidden bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-opacity-50">
+                    <div className="flex flex-col md:flex-row flex-grow h-[calc(100vh-40px)] md:h-[calc(100vh-50px)]">
+                        {renderMenu()}
+                        {renderQuestionArea()}
+                    </div>
+                    
+                    <footer className="h-[40px] md:h-[50px] bg-gray-800 text-white flex items-center justify-center z-50 relative shrink-0">
+                        <p className="text-sm md:text-xl font-bold tracking-widest text-shadow">
+                            by lcnpalembang-08994477998
+                        </p>
+                    </footer>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
